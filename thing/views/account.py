@@ -132,6 +132,7 @@ def account_settings(request):
     profile.show_industry = (request.POST.get('show_industry', '') == 'on')
     profile.show_orders = (request.POST.get('show_orders', '') == 'on')
     profile.show_trade = (request.POST.get('show_trade', '') == 'on')
+    profile.sho_trade_tool = (request.POST.get('show_trade_tool', '') == 'on')
     profile.show_transactions = (request.POST.get('show_transactions', '') == 'on')
     profile.show_wallet_journal = (request.POST.get('show_wallet_journal', '') == 'on')
 

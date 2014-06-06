@@ -69,6 +69,8 @@ urlpatterns += patterns(
     (r'^trade/(?P<period>all)/$', 'trade_timeframe'),
     (r'^trade/(?P<slug>[-\w]+)/$', 'trade_timeframe'),
 
+    (r'^trade_tool/$', 'trade_tool'),
+
     (r'^transactions/$', 'transactions'),
 
     (r'^wallet_journal/$', 'wallet_journal'),

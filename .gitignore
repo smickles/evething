@@ -23,3 +23,4 @@ import.py.orig
 import.py.rej
 postgres-latest.sql
 sdl
+thing/migrations/

@@ -12,5 +12,6 @@ from thing.views.industry import *
 from thing.views.mail import *
 from thing.views.orders import *
 from thing.views.trade import *
+from thing.views.trade_tool import *
 from thing.views.transactions import *
 from thing.views.wallet_journal import *
