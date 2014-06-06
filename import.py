@@ -101,7 +101,7 @@ class Importer:
     def __init__(self):
         self.cursor = connections['import'].cursor()
         # sqlite3 UTF drama workaround
-        connections['import'].connection.text_factory = lambda x: unicode(x, "utf-8", "ignore")
+        # TODO connections['import'].connection.text_factory = lambda x: unicode(x, "utf-8", "ignore")
 
     def import_all(self):
         time_func('Region', self.import_region)
@@ -124,7 +124,7 @@ class Importer:
     def import_region(self):
         added = 0
 
-        self.cursor.execute("SELECT regionID, regionName FROM mapRegions WHERE regionName != 'Unknown'")
+        self.cursor.execute('SELECT "regionID", "regionName" FROM "mapRegions" WHERE "regionName" != \'Unknown\'')
         bulk_data = {}
         for row in self.cursor:
             bulk_data[int(row[0])] = row[1:]
@@ -153,7 +153,7 @@ class Importer:
     def import_constellation(self):
         added = 0
 
-        self.cursor.execute('SELECT constellationID,constellationName,regionID FROM mapConstellations')
+        self.cursor.execute('SELECT "constellationID","constellationName","regionID" FROM "mapConstellations"')
         bulk_data = {}
         for row in self.cursor:
             id = int(row[0])
@@ -185,7 +185,7 @@ class Importer:
     def import_system(self):
         added = 0
 
-        self.cursor.execute('SELECT solarSystemID, solarSystemName, constellationID FROM mapSolarSystems')
+        self.cursor.execute('SELECT "solarSystemID", "solarSystemName", "constellationID" FROM "mapSolarSystems"')
         bulk_data = {}
         for row in self.cursor:
             id = int(row[0])
@@ -217,7 +217,7 @@ class Importer:
     def import_station(self):
         added = 0
 
-        self.cursor.execute('SELECT stationID, stationName, solarSystemID FROM staStations')
+        self.cursor.execute('SELECT "stationID", "stationName", "solarSystemID" FROM "staStations"')
         bulk_data = {}
         for row in self.cursor:
             id = int(row[0])
@@ -250,7 +250,7 @@ class Importer:
     def import_marketgroup(self):
         added = 0
 
-        self.cursor.execute('SELECT marketGroupID, marketGroupName, parentGroupID FROM invMarketGroups')
+        self.cursor.execute('SELECT "marketGroupID", "marketGroupName", "parentGroupID" FROM "invMarketGroups"')
         bulk_data = {}
         for row in self.cursor:
             id = int(row[0])
@@ -311,7 +311,7 @@ class Importer:
     def import_itemcategory(self):
         added = 0
 
-        self.cursor.execute('SELECT categoryID, categoryName FROM invCategories')
+        self.cursor.execute('SELECT "categoryID", "categoryName" FROM "invCategories"')
         bulk_data = {}
         for row in self.cursor:
             id = int(row[0])
@@ -342,7 +342,7 @@ class Importer:
     def import_itemgroup(self):
         added = 0
 
-        self.cursor.execute('SELECT groupID, groupName, categoryID FROM invGroups')
+        self.cursor.execute('SELECT "groupID", "groupName", "categoryID" FROM "invGroups"')
         bulk_data = {}
         for row in self.cursor:
             id = int(row[0])
@@ -383,7 +383,7 @@ class Importer:
         added = 0
 
         self.cursor.execute(
-            'SELECT typeID, typeName, groupID, marketGroupID, portionSize, volume, basePrice FROM invTypes')
+            'SELECT "typeID", "typeName", "groupID", "marketGroupID", "portionSize", volume, "basePrice" FROM "invTypes"')
 
         bulk_data = {}
         mg_ids = set()
@@ -449,11 +449,11 @@ class Importer:
         added = 0
 
         self.cursor.execute("""
-            SELECT  b.blueprintTypeID, t.typeName, b.productTypeID, b.productionTime, b.productivityModifier, b.materialModifier, b.wasteFactor
-            FROM    invBlueprintTypes AS b
-            INNER JOIN invTypes AS t
-            ON      b.blueprintTypeID = t.typeID
-            WHERE   t.published = 1
+            SELECT  b."blueprintTypeID", t."typeName", b."productTypeID", b."productionTime", b."productivityModifier", b."materialModifier", b."wasteFactor"
+            FROM    "invBlueprintTypes" AS b
+            INNER JOIN "invTypes" AS t
+            ON      b."blueprintTypeID" = t."typeID"
+            WHERE   t."published" = true
         """)
         bulk_data = {}
         for row in self.cursor:
@@ -491,7 +491,7 @@ class Importer:
         new = []
         for id, data in bulk_data.items():
             # Base materials
-            self.cursor.execute('SELECT materialTypeID, quantity FROM invTypeMaterials WHERE typeID=%s', (data[1],))
+            self.cursor.execute('SELECT "materialTypeID", "quantity" FROM "invTypeMaterials" WHERE "typeID"=%s', (data[1],))
             for baserow in self.cursor:
                 new.append(BlueprintComponent(
                     blueprint_id=id,
@@ -503,15 +503,15 @@ class Importer:
 
             # Extra materials. activityID 1 is manufacturing - categoryID 16 is skill requirements
             self.cursor.execute("""
-                SELECT  r.requiredTypeID, r.quantity
-                FROM    ramTypeRequirements AS r
-                INNER JOIN invTypes AS t
-                ON      r.requiredTypeID = t.typeID
-                INNER JOIN invGroups AS g
-                ON      t.groupID = g.groupID
-                WHERE   r.typeID = %s
-                        AND r.activityID = 1
-                        AND g.categoryID <> 16
+                SELECT  r."requiredTypeID", r."quantity"
+                FROM    "ramTypeRequirements" AS r
+                INNER JOIN "invTypes" AS t
+                ON     r."requiredTypeID" = t."typeID"
+                INNER JOIN "invGroups" AS g
+                ON      t."groupID" = g."groupID"
+                WHERE   r."typeID" = %s
+                        AND r."activityID" = 1
+                        AND g."categoryID" <> 16
             """, (id,))
 
             for extrarow in self.cursor:
@@ -539,17 +539,17 @@ class Importer:
         #                    AND invTypes.published = 1
         skills = {}
         self.cursor.execute("""
-            SELECT  DISTINCT invTypes.typeID,
-                    dgmTypeAttributes.valueFloat AS rank,
-                    invTypes.description
-            FROM    invTypes
-            INNER JOIN invGroups ON (invTypes.groupID = invGroups.groupID)
-            INNER JOIN dgmTypeAttributes ON (invTypes.typeID = dgmTypeAttributes.typeID)
-            WHERE   invGroups.categoryID = 16
-                    AND dgmTypeAttributes.attributeID = 275
-                    AND dgmTypeAttributes.valueFloat IS NOT NULL
-                    AND invTypes.marketGroupID IS NOT NULL
-            ORDER BY invTypes.typeID
+            SELECT  DISTINCT "invTypes"."typeID",
+                    "dgmTypeAttributes"."valueFloat" AS "rank",
+                    "invTypes"."description"
+            FROM    "invTypes"
+            INNER JOIN "invGroups" ON ("invTypes"."groupID" = "invGroups"."groupID")
+            INNER JOIN "dgmTypeAttributes" ON ("invTypes"."typeID" = "dgmTypeAttributes"."typeID")
+            WHERE   "invGroups"."categoryID" = 16
+                    AND "dgmTypeAttributes"."attributeID" = 275
+                    AND "dgmTypeAttributes"."valueFloat" IS NOT NULL
+                    AND "invTypes"."marketGroupID" IS NOT NULL
+            ORDER BY "invTypes"."typeID"
         """)
         for row in self.cursor:
             # Handle NULL descriptions
@@ -565,9 +565,9 @@ class Importer:
 
         # Primary/secondary attributes
         self.cursor.execute("""
-            SELECT  typeID, attributeID, valueInt, valueFloat
-            FROM    dgmTypeAttributes
-            WHERE   attributeID IN (180, 181)
+            SELECT  "typeID", "attributeID", "valueInt", "valueFloat"
+            FROM    "dgmTypeAttributes"
+            WHERE   "attributeID" IN (180, 181)
         """)
         for row in self.cursor:
             # skip unpublished
@@ -640,7 +640,7 @@ class Importer:
     def import_inventoryflag(self):
         added = 0
 
-        self.cursor.execute('SELECT flagID, flagName, flagText FROM invFlags')
+        self.cursor.execute('SELECT "flagID", "flagName", "flagText" FROM "invFlags"')
 
         bulk_data = {}
         for row in self.cursor:
@@ -681,7 +681,7 @@ class Importer:
     def import_npcfaction(self):
         added = 0
 
-        self.cursor.execute('SELECT factionID, factionName FROM chrFactions')
+        self.cursor.execute('SELECT "factionID", "factionName" FROM "chrFactions"')
 
         bulk_data = {}
         for row in self.cursor:
@@ -717,9 +717,9 @@ class Importer:
         added = 0
 
         self.cursor.execute("""
-            SELECT  c.corporationID, i.itemName
-            FROM    crpNPCCorporations c, invNames i
-            WHERE   c.corporationID = i.itemID
+            SELECT  c."corporationID", i."itemName"
+            FROM    "crpNPCCorporations" c, "invNames" i
+            WHERE   c."corporationID" = i."itemID"
         """)
 
         bulk_data = {}
@@ -762,12 +762,12 @@ class Importer:
 
         # Gather skill pre-requisite data
         self.cursor.execute("""
-            SELECT  typeID,
-                    attributeID,
-                    COALESCE(valueFloat, valueInt)
-            FROM    dgmTypeAttributes
-            WHERE   attributeID in (182, 183, 184, 1285, 1289, 1290, 277, 278, 279, 1286, 1287, 1288)
-                    AND typeID in (%s)
+            SELECT  "typeID",
+                    "attributeID",
+                    COALESCE("valueFloat", "valueInt")
+            FROM    "dgmTypeAttributes"
+            WHERE   "attributeID" in (182, 183, 184, 1285, 1289, 1290, 277, 278, 279, 1286, 1287, 1288)
+                    AND "typeID" in (%s)
         """ % (ids))
 
         for row in self.cursor:
