@@ -16,6 +16,11 @@ class TestCaseTradeTool(TestCase):
         
         # She navigates to the trade tool
         self.browser.get('http://localhost:8000/trade_tool/')
+        # The page has an expected title
+        self.assertEqual(self.browser.title, 'EVEthing: Trade Tool')
+        # The page has a similar style to the other pages
+        self.assertIsNotNone(self.browser.find_element_by_name('viewport'))
+        self.assertIsNotNone(self.browser.find_element_by_class_name('navbar-inner'))
         
         # She enters here current location
         system_input = self.browser.find_element_by_name('system')
