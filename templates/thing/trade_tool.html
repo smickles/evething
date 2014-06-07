@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block title %}Trade Tool{% endblock %}
+
+{% block content %}
+      <div class="row-fluid">
+        <div class="span3">
+          <form action="{{ url('thing.views.trade_tool') }}" method="GET" class="form-search">
+            <label>System</label>
+            <input type="text" class="input-mini" name="system" value="{{ system }}">
+            <input type="submit" class="input-mini" value="Update">
+          </form>
+        </div>
+{% endblock %}
