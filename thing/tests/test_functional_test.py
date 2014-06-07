@@ -20,7 +20,7 @@ class TestCaseTradeTool(TestCase):
         self.assertEqual(self.browser.title, 'EVEthing: Trade Tool')
         # The page has a similar style to the other pages
         self.assertIsNotNone(self.browser.find_element_by_name('viewport'))
-        self.assertIsNotNone(self.browser.find_element_by_class_name('navbar-inner'))
+        self.assertIsNotNone(self.browser.find_element_by_class_name('navbar-header'))
         
         # She enters here current location
         system_input = self.browser.find_element_by_name('system')
