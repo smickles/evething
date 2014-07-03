@@ -37,7 +37,9 @@ class TestCaseTradeTool(TestCase):
         self.assertEqual(result_header.text, 'Best Trade')
 
         table_headers = self.browser.find_elements_by_tag_name('th')
+        self.assertTrue(len(table_headers) > 0)
         table_cells = self.browser.find_elements_by_tag_name('td')
+        self.assertTrue(len(table_headers) > 0)
         mock_table_data = (
             'Item',
             'Pickup',
@@ -53,7 +55,14 @@ class TestCaseTradeTool(TestCase):
             7.63
         )
 
-        for cell in chain(table_headers, table_cells):
+        cells = chain(table_headers, table_cells)
+        self.assertTrue(sum(1 for _ in cells) > 0)
+
+        for cell in cells:
+            print(cell.text)
             self.assertIn(cell.text, mock_table_data)
 
         self.fail('finish test')
+
+        # She then tries a different system (find_nothing) and sees a simple
+        # explanation that no good trades were found

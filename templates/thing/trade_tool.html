@@ -15,6 +15,32 @@
         {% if trade_plan %}
         <div class="col-sm-6 col-sm-offset-3">
           <h2>Best Trade</h2>
+          <table class="table table-striped table-bordered table-condensed">
+            <thead>
+              <tr class="c">
+                <th class="l">Item</th>
+                <th>Pickup</th>
+                <th>Drop Off</th>
+                <th>Buy Up To</th>
+                <th>Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for trade in trade_plan -%}
+              <tr class="r">
+                <td class="l">{{ trade.item }}</td>
+                <td>{{ trade.pickup }}</td>
+                <td>{{ trade.drop_off }}</td>
+                <td>{{ trade.buy_up_to }}</td>
+                <td>{{ trade.amount }}</td>
+              </tr>
+              {%- else -%}
+              <tr>
+                <td colspan="4">No good trades found.</td>
+              </tr>
+              {%- endfor %}
+            </tbody>
+          </table>
         </div>
         {% endif %}
 {% endblock %}

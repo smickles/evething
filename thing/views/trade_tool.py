@@ -4,7 +4,8 @@ from thing.stuff import render_page
 
 @login_required()
 def trade_tool(request):
-    if system = request.GET.get('system'):
+    system = request.GET.get('system')
+    if system:
 
         trade_plan = make_trade_plan(system)
 
