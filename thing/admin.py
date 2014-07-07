@@ -1,7 +1,7 @@
 from django.contrib import admin
 from thing.models import APIKey, BlueprintInstance, Campaign, Character, CharacterConfig, Corporation, \
     Alliance, APIKeyFailure, Asset, AssetSummary, BlueprintComponent, Blueprint, CorpWallet, \
-    TaskState, CharacterDetails
+    TaskState, CharacterDetails, Contract, UserProfile, Transaction, JournalEntry
 
 
 class APIKeyAdmin(admin.ModelAdmin):
@@ -58,6 +58,21 @@ class TaskStateAdmin(admin.ModelAdmin):
     list_display = ('keyid', 'url', 'state', 'mod_time', 'next_time', 'parameter')
 
 
+class ContractAdmin(admin.ModelAdmin):
+    list_display = ('contract_id', 'date_issued', 'date_expired', 'date_completed')
+
+
+class UserProfileAdmin(admin.ModelAdmin):
+    list_display = ('user', 'last_seen', 'can_add_keys')
+
+
+class TransactionAdmin(admin.ModelAdmin):
+    list_display = ('transaction_id', 'date', 'character', 'corp_wallet', 'other_char', 'other_corp', 'item')
+
+
+class JournalEntryAdmin(admin.ModelAdmin):
+    list_display = ('date', 'character', 'corp_wallet', 'ref_type', 'amount', 'owner1_id', 'owner2_id', 'reason')
+
 admin.site.register(APIKey, APIKeyAdmin)
 admin.site.register(Character, CharacterAdmin)
 admin.site.register(CharacterConfig)
@@ -73,3 +88,7 @@ admin.site.register(Blueprint, BlueprintAdmin)
 admin.site.register(CorpWallet, CorpWalletAdmin)
 admin.site.register(TaskState, TaskStateAdmin)
 admin.site.register(CharacterDetails)
+admin.site.register(Contract, ContractAdmin)
+admin.site.register(UserProfile, UserProfileAdmin)
+admin.site.register(Transaction, TransactionAdmin)
+admin.site.register(JournalEntry, JournalEntryAdmin)
