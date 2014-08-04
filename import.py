@@ -29,48 +29,42 @@ import os
 import sys
 import time
 
-try:
-    import xml.etree.cElementTree as ET
-except ImportError:
-    import xml.etree.ElementTree as ET
-
 from decimal import Decimal
 
 # Set up our environment and import settings
 os.environ['DJANGO_SETTINGS_MODULE'] = 'evething.settings'
-from django.conf import settings
 from django.db import connections
 
-from thing.models import *
+from thing.models import *  # NOPEP8
 
 # ---------------------------------------------------------------------------
 # Override volume for ships, assembled volume is mostly useless :ccp:
 PACKAGED = {
-     25: 2500,  # frigate
-     26: 10000, # cruiser
-     27: 50000, # battleship
-     28: 20000, # industrial
-     31: 500,   # shuttle
-    324: 2500,  # assault ship
-    358: 10000, # heavy assault ship
-    380: 20000, # transport ship
-    419: 15000, # battlecruiser
-    420: 5000,  # destroyer
-    463: 3750,  # mining barge
-    540: 15000, # command ship
-    541: 5000,  # interdictor
-    543: 3750,  # exhumer
-    830: 2500,  # covert ops
-    831: 2500,  # interceptor
-    832: 10000, # logistics
-    833: 10000, # force recon
-    834: 2500,  # stealth bomber
-    893: 2500,  # electronic attack ship
-    894: 10000, # heavy interdictor
-    898: 50000, # black ops
-    900: 50000, # marauder
-    906: 10000, # combat recon
-    963: 5000,  # strategic cruiser
+    25: 2500,    # frigate
+    26: 10000,   # cruiser
+    27: 50000,   # battleship
+    28: 20000,   # industrial
+    31: 500,     # shuttle
+    324: 2500,   # assault ship
+    358: 10000,  # heavy assault ship
+    380: 20000,  # transport ship
+    419: 15000,  # battlecruiser
+    420: 5000,   # destroyer
+    463: 3750,   # mining barge
+    540: 15000,  # command ship
+    541: 5000,   # interdictor
+    543: 3750,   # exhumer
+    830: 2500,   # covert ops
+    831: 2500,   # interceptor
+    832: 10000,  # logistics
+    833: 10000,  # force recon
+    834: 2500,   # stealth bomber
+    893: 2500,   # electronic attack ship
+    894: 10000,  # heavy interdictor
+    898: 50000,  # black ops
+    900: 50000,  # marauder
+    906: 10000,  # combat recon
+    963: 5000,   # strategic cruiser
 }
 
 # ---------------------------------------------------------------------------
@@ -92,11 +86,10 @@ PREREQ_LEVELS = {
     1288: 5,
 }
 
-# ---------------------------------------------------------------------------
 
 def time_func(text, f):
     start = time.time()
-    print '=> %s:' % (text),
+    print '=> %s:' % text,
     sys.stdout.flush()
 
     added = f()
@@ -290,7 +283,7 @@ class Importer:
                 # hasn't changed
                 mg = data_map.get(id, None)
                 if mg is not None:
-                    if parent is not None and mg.parent.id != parent.id:
+                    if parent is not None and mg.parent is not None and mg.parent.id != parent.id:
                         mg.delete()
                     else:
                         if mg.name != data[0]:
@@ -422,7 +415,7 @@ class Importer:
             item = data_map.get(id, None)
             if item is not None:
                 if item.name != data[0] or item.portion_size != portion_size or item.volume != volume or \
-                   item.base_price != base_price or item.market_group_id != mg_id:
+                        item.base_price != base_price or item.market_group_id != mg_id:
                     print '==> Updated data for #%s (%r)' % (item.id, item.name)
                     item.name = data[0]
                     item.portion_size = portion_size
@@ -455,11 +448,10 @@ class Importer:
         added = 0
 
         self.cursor.execute("""
-            SELECT  b."blueprintTypeID", t."typeName", b."productTypeID", b."productionTime", b."productivityModifier", b."materialModifier", b."wasteFactor"
-            FROM    "invBlueprintTypes" AS b
+            SELECT  b."typeID", t."typeName", b."maxProductionLimit"
+            FROM    "industryBlueprints" AS b
             INNER JOIN "invTypes" AS t
-            ON      b."blueprintTypeID" = t."typeID"
-            WHERE   t."published" = true
+            ON      b."typeID" = t.typeID
         """)
         bulk_data = {}
         for row in self.cursor:
@@ -482,59 +474,55 @@ class Importer:
                 new.append(Blueprint(
                     id=id,
                     name=data[0],
-                    item_id=data[1],
-                    production_time=data[2],
-                    productivity_modifier=data[3],
-                    material_modifier=data[4],
-                    waste_factor=data[5],
+                    productionLimit=data[1]
                 ))
                 added += 1
 
         if new:
             Blueprint.objects.bulk_create(new)
 
-
         # Collect all components
         new = []
         for id, data in bulk_data.items():
             # Base materials
-            self.cursor.execute('SELECT "materialTypeID", "quantity" FROM "invTypeMaterials" WHERE "typeID"=%s', (data[1],))
+            self.cursor.execute('SELECT "activityID", "materialTypeID", "quantity", "consume" FROM "industryActivityMaterials" WHERE "typeID"=%s', (id,))
             for baserow in self.cursor:
-                new.append(BlueprintComponent(
-                    blueprint_id=id,
-                    item_id=baserow[0],
-                    count=baserow[1],
-                    needs_waste=True,
-                ))
-                added += 1
+                # blueprint 3927 references itemId 3924 which doesn't exist,
+                # so ignore it, :ccp:
+                if id != 3927:
+                    new.append(BlueprintComponent(
+                        blueprint_id=id,
+                        activity=baserow[0],
+                        item_id=baserow[1],
+                        count=baserow[2],
+                        consumed=baserow[3]
+                    ))
+                    added += 1
+        # If there's any new ones just drop and recreate the whole lot, easier
+        # than trying to work out what has changed for every single blueprint
+        if new:
+            BlueprintComponent.objects.all().delete()
+            BlueprintComponent.objects.bulk_create(new)
 
-            # Extra materials. activityID 1 is manufacturing - categoryID 16 is skill requirements
-            self.cursor.execute("""
-                SELECT  r."requiredTypeID", r."quantity"
-                FROM    "ramTypeRequirements" AS r
-                INNER JOIN "invTypes" AS t
-                ON     r."requiredTypeID" = t."typeID"
-                INNER JOIN "invGroups" AS g
-                ON      t."groupID" = g."groupID"
-                WHERE   r."typeID" = %s
-                        AND r."activityID" = 1
-                        AND g."categoryID" <> 16
-            """, (id,))
-
-            for extrarow in self.cursor:
-                new.append(BlueprintComponent(
+        # Products!
+        new = []
+        for id, data in bulk_data.items():
+            # Base materials
+            self.cursor.execute('SELECT "activityID", "productTypeID", "quantity" FROM "industryActivityProducts" WHERE "typeID"=%s', (id,))
+            for baserow in self.cursor:
+                new.append(BlueprintProduct(
                     blueprint_id=id,
-                    item_id=extrarow[0],
-                    count=extrarow[1],
-                    needs_waste=False,
+                    activity=baserow[0],
+                    item_id=baserow[1],
+                    count=baserow[2]
                 ))
                 added += 1
 
         # If there's any new ones just drop and recreate the whole lot, easier
         # than trying to work out what has changed for every single blueprint
         if new:
-            BlueprintComponent.objects.all().delete()
-            BlueprintComponent.objects.bulk_create(new)
+            BlueprintProduct.objects.all().delete()
+            BlueprintProduct.objects.bulk_create(new)
 
         return added
 
@@ -602,8 +590,7 @@ class Importer:
             skill = skill_map.get(id, None)
             if skill is not None:
                 if skill.rank != data['rank'] or skill.description != data['description'] or \
-                   skill.primary_attribute != data['pri'] or skill.secondary_attribute != data['sec']:
-
+                        skill.primary_attribute != data['pri'] or skill.secondary_attribute != data['sec']:
                     skill.rank = data['rank']
                     skill.description = data['description']
                     skill.primary_attribute = data['pri']
@@ -626,22 +613,22 @@ class Importer:
 
         return added
 
-# :skills:
-#       :prerequisite: # These are the attribute ids for skill prerequisites. [item, level]
-#         1: [182, 277]
-#         2: [183, 278]
-#         3: [184, 279]
-#         4: [1285, 1286]
-#         5: [1289, 1287]
-#         6: [1290, 1288]
-#       :primary_attribute: 180 # database attribute ID for primary attribute
-#       :secondary_attribute: 181 # database attribute ID for secondary attribute
-#       :attributes: # Mapping of id keys to the actual attribute
-#         165: :intelligence
-#         164: :charisma
-#         166: :memory
-#         167: :perception
-#         168: :willpower
+    # :skills:
+    #       :prerequisite: # These are the attribute ids for skill prerequisites. [item, level]
+    #         1: [182, 277]
+    #         2: [183, 278]
+    #         3: [184, 279]
+    #         4: [1285, 1286]
+    #         5: [1289, 1287]
+    #         6: [1290, 1288]
+    #       :primary_attribute: 180 # database attribute ID for primary attribute
+    #       :secondary_attribute: 181 # database attribute ID for secondary attribute
+    #       :attributes: # Mapping of id keys to the actual attribute
+    #         165: :intelligence
+    #         164: :charisma
+    #         166: :memory
+    #         167: :perception
+    #         168: :willpower
 
     # -----------------------------------------------------------------------
     # InventoryFlags
